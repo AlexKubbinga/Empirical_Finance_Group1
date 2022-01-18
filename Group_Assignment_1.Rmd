@@ -28,17 +28,78 @@ library(vroom)
 library(mosaic)
 library(lubridate)
 library(readxl)
+library(quantmod)
+library(xts)
+library(moments)
 
 ```
 
 ```{r}
 PS1_Monthly <- read_excel("PS1_Monthly.xlsx")
 
+PS1_Monthly = PS1_Monthly %>% 
+  mutate(clean_company = ifelse(COMNAM == "CHASE MANHATTAN CORP NEW", "JPM",
+                    ifelse(COMNAM == "CHEMICAL BANKING CORP", "JPM",
+                    ifelse(COMNAM == "CITIGROUP INC", "CITI",
+                    ifelse(COMNAM == "EXXON CORP", "EXXON MOBIL", 
+                    ifelse(COMNAM == "EXXON MOBIL CORP", "EXXON MOBIL",
+                    ifelse(COMNAM == "GENERAL ELECTRIC CO", "GENERAL ELECTRIC",
+                    ifelse(COMNAM == "INTEL CORP", "INTEL",
+                    ifelse(COMNAM == "J P MORGAN CHASE & CO", "JPM",
+                    ifelse(COMNAM == "JPMORGAN CHASE & CO", "JPM",
+                    ifelse(COMNAM == "MICROSOFT CORP", "MICROSOFT",
+                    ifelse(COMNAM == "PRIMERICA CORP NEW", "CITI",
+                    ifelse(COMNAM == "TRAVELERS GROUP INC", "CITI",
+                    ifelse(COMNAM == "TRAVELERS INC", "CITI", "no"))))))))))))))
+
+PS1_Monthly<- PS1_Monthly %>% 
+  mutate(date= as.Date(as.character(PS1_Monthly$date), format = "%Y%m%d"))
+
 ```
+
+
+
 
 ```{r}
 
-PS1_Monthly %>% mutate()
+PS1_Monthly <-PS1_Monthly %>% 
+  group_by(clean_company) %>% 
+  mutate(gross_RET = RET+1,
+         gross_RETX = RETX+1,
+         gross_sprtrn = sprtrn +1)
+
+PS1_Monthly <- PS1_Monthly %>% group_by(clean_company) %>% 
+  mutate(tot_RET = cumprod(gross_RET),
+         tot_RETX = cumprod(gross_RETX),
+         tot_sprtrn = cumprod(gross_sprtrn))
+
+```
+
+```{r}
+names <- c("GENERAL ELECTRIC","MICROSOFT")
+
+
+PS1_Monthly %>% filter( clean_company == "MICROSOFT")  %>% ggplot() +geom_line(aes(x=date, y=tot_RET, color=clean_company)) +
+  geom_line(aes(x=date, y=tot_RETX, color=clean_company)) +
+  geom_line(aes(x=date, y=tot_sprtrn))
+
+PS1_Monthly %>% filter( clean_company == "GENERAL ELECTRIC")  %>% ggplot() +geom_line(aes(x=date, y=tot_RET, color=clean_company)) +
+  geom_line(aes(x=date, y=tot_RETX, color=clean_company)) +
+  geom_line(aes(x=date, y=tot_sprtrn))
+```
+
+```{r}
+PS1_Monthly <-PS1_Monthly %>%  mutate(LRET = log(abs(RET)))
+
+PS1_Monthly %>% select(c(RET,LRET))  %>% summarize(mean_RET = mean(RET),
+                                                  mean_LRET = mean(LRET),
+                                                  var_RET = var(RET),
+                                                  var_LRET = var(LRET),
+                                                  skew_RET = skewness(RET),
+                                                  skew_LRET = skewness(LRET),
+                                                  kurt_RET = kurtosis(RET),
+                                                  kurt_LRET = kurtosis(LRET),)
+                                            
 
 ```
 
