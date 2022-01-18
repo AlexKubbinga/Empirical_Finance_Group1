@@ -1,6 +1,6 @@
 ---
 title: 'Finance Group Assignment 1'
-author: "Group 1"
+author: "Study Group 1"
 date: "`r Sys.Date()`"
 output: 
     html_document:
@@ -34,10 +34,13 @@ library(moments)
 
 ```
 
-```{r}
+
+# Question 1
+```{r load data & cleansing}
+# load monthly data & cleansing
 PS1_Monthly <- read_excel("PS1_Monthly.xlsx")
 
-PS1_Monthly = PS1_Monthly %>% 
+PS1_Monthly <- PS1_Monthly %>% 
   mutate(clean_company = ifelse(COMNAM == "CHASE MANHATTAN CORP NEW", "JPM",
                     ifelse(COMNAM == "CHEMICAL BANKING CORP", "JPM",
                     ifelse(COMNAM == "CITIGROUP INC", "CITI",
@@ -52,54 +55,164 @@ PS1_Monthly = PS1_Monthly %>%
                     ifelse(COMNAM == "TRAVELERS GROUP INC", "CITI",
                     ifelse(COMNAM == "TRAVELERS INC", "CITI", "no"))))))))))))))
 
-PS1_Monthly<- PS1_Monthly %>% 
+PS1_Monthly <- PS1_Monthly %>% 
   mutate(date= as.Date(as.character(PS1_Monthly$date), format = "%Y%m%d"))
 
 ```
 
 
-
-
-```{r}
-
+# Question 2
+```{r calculate total returns}
 PS1_Monthly <-PS1_Monthly %>% 
   group_by(clean_company) %>% 
   mutate(gross_RET = RET+1,
          gross_RETX = RETX+1,
          gross_sprtrn = sprtrn +1)
 
-PS1_Monthly <- PS1_Monthly %>% group_by(clean_company) %>% 
+# calculate total returns which is also cumulative product of gross returns
+PS1_Monthly <- PS1_Monthly %>% 
+  group_by(clean_company) %>% 
   mutate(tot_RET = cumprod(gross_RET),
          tot_RETX = cumprod(gross_RETX),
          tot_sprtrn = cumprod(gross_sprtrn))
 
 ```
 
-```{r}
-names <- c("GENERAL ELECTRIC","MICROSOFT")
 
+```{r plot}
+# names <- c("GENERAL ELECTRIC","MICROSOFT")
 
-PS1_Monthly %>% filter( clean_company == "MICROSOFT")  %>% ggplot() +geom_line(aes(x=date, y=tot_RET, color=clean_company)) +
-  geom_line(aes(x=date, y=tot_RETX, color=clean_company)) +
-  geom_line(aes(x=date, y=tot_sprtrn))
+# plot investment with & without dividend
+PS1_Monthly %>% 
+  filter(clean_company == "MICROSOFT") %>% 
+  ggplot() + 
+  geom_line(aes(x=date, y=tot_RET), color='red') +
+  geom_line(aes(x=date, y=tot_RETX), color='blue') +
+  labs(title = 'Investment on Microsoft with/without dividend',
+       subtitle = 'Red line for one with dividend and blue for without',
+       y = 'cumulative return') +
+  # geom_line(aes(x=date, y=tot_sprtrn)) + why do we need this?
+  NULL
 
-PS1_Monthly %>% filter( clean_company == "GENERAL ELECTRIC")  %>% ggplot() +geom_line(aes(x=date, y=tot_RET, color=clean_company)) +
-  geom_line(aes(x=date, y=tot_RETX, color=clean_company)) +
-  geom_line(aes(x=date, y=tot_sprtrn))
+PS1_Monthly %>% 
+  filter(clean_company == "GENERAL ELECTRIC") %>% 
+  ggplot() + 
+  geom_line(aes(x=date, y=tot_RET), color='red') +
+  geom_line(aes(x=date, y=tot_RETX), color='blue') +
+  labs(title = 'Investment on GE with/without dividend',
+       subtitle = 'Red line for one with dividend and blue for without',
+       y = 'cumulative return') +
+  # geom_line(aes(x=date, y=tot_sprtrn)) + why do we need this?
+  NULL
 ```
 
-```{r}
-PS1_Monthly <-PS1_Monthly %>%  mutate(LRET = log(abs(RET)))
+Commentary:
+From the graphs above we can see that dividends may reduce the profit you could have obtained from the one with dividend payments.
 
-PS1_Monthly %>% select(c(RET,LRET))  %>% summarize(mean_RET = mean(RET),
-                                                  mean_LRET = mean(LRET),
-                                                  var_RET = var(RET),
-                                                  var_LRET = var(LRET),
-                                                  skew_RET = skewness(RET),
-                                                  skew_LRET = skewness(LRET),
-                                                  kurt_RET = kurtosis(RET),
-                                                  kurt_LRET = kurtosis(LRET),)
+# Question 3
+```{r}
+# PS1_Monthly <- PS1_Monthly %>%  
+#   mutate(LRET = log(abs(RET)))
+
+# generate log return variable
+PS1_Monthly <- PS1_Monthly %>%  
+  mutate(LRET = log(RET + 1)) #log return should be this according to prof
+
+# calculate metrics of normal and log return
+PS1_Monthly %>% 
+  select(c(RET,LRET)) %>% 
+  summarize(mean_RET = mean(RET),
+            mean_LRET = mean(LRET),
+            var_RET = var(RET),
+            var_LRET = var(LRET),
+            skew_RET = skewness(RET),
+            skew_LRET = skewness(LRET),
+            kurt_RET = kurtosis(RET),
+            kurt_LRET = kurtosis(LRET))
                                             
+# plot normal return VS log return for Microsoft
+PS1_Monthly %>% 
+  filter(clean_company == "MICROSOFT") %>% 
+  ggplot() + 
+  geom_line(aes(x=date, y=RET), color='red') +
+  geom_line(aes(x=date, y=LRET), color='yellow') +
+  labs(title = 'Normal return VS log return for Microsoft',
+       subtitle = 'Red line for normal return and yellow for log return',
+       y = 'return') +
+  NULL
+
+```
+
+Discussion on the result:
+The two types of return nearly overlapped!
+not finished, still open to discussion
+
+# Question 4 & 5
+```{r}
+# load daily data
+HPR_daily <- read_excel("PS1_Daily.xlsx", sheet = 'HPR_daily', skip = 1)
+
+# calculate total return for MS, GE and SP500
+HPR_daily <- HPR_daily %>% 
+  clean_names() %>% 
+  mutate(tot_RET_MS = cumprod(msft+1),
+         tot_RET_GE = cumprod(ge+1),
+         tot_sprtrn = cumprod(sprtrn+1))
+
+# plot daily total return for MS, GE and SP500
+HPR_daily %>% 
+  pivot_longer(cols = 10:12, 
+               names_to = 'stocks', 
+               values_to = 'total_return') %>% 
+  ggplot(aes(date, total_return, color=stocks)) +
+  geom_line(aes(group=stocks)) +
+  NULL
+
+```
+
+Discussion on results compared with monthly data:
+to be finished
+
+# Question 6
+```{r}
+# HPR_daily <- HPR_daily %>%  
+#   mutate(LRET_msft = log(msft + 1),
+#          LRET_xom = log(xom + 1),
+#          LRET_ge = log(ge + 1),
+#          LRET_jpm = log(jpm + 1),
+#          LRET_intc = log(intc + 1),
+#          LRET_c = log(c + 1),
+#          LRET_vwretd = log(vwretd + 1),
+#          LRET_sprtrn = log(sprtrn + 1))
+
+# generate log return variable
+HPR_daily <- HPR_daily %>% 
+  pivot_longer(cols = 2:9,
+               names_to = 'stocks',
+               values_to = 'RET') %>% 
+  group_by(stocks) %>% 
+  mutate(LRET = log(RET + 1))
+
+# calculate metrics for daily data
+HPR_daily %>% 
+  select(c(RET,LRET)) %>% 
+  summarize(mean_RET = mean(RET),
+            mean_LRET = mean(LRET),
+            var_RET = var(RET),
+            var_LRET = var(LRET),
+            skew_RET = skewness(RET),
+            skew_LRET = skewness(LRET),
+            kurt_RET = kurtosis(RET),
+            kurt_LRET = kurtosis(LRET))
+
+
+```
+
+Discussion on results compared with monthly metrics:
+to be finished
+
+# Question 7
+```{r}
 
 ```
 
