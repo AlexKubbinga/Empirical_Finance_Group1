@@ -1,0 +1,31 @@
+---
+title: 'Finance Group Assignment 1'
+author: "Group 1"
+date: "`r Sys.Date()`"
+output: 
+    html_document:
+      number_sections: true
+      highlight: haddock
+      theme: spacelab
+      toc: yes
+      toc_depth: 2
+      toc_float:
+        collapsed: false
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r, load_libraries, include = FALSE}
+
+library(tidyverse)
+library(ggplot2)  
+library(here)
+library(janitor) # clean_names()
+library(skimr)
+library(vroom)
+library(mosaic)
+library(lubridate)
+
+```
