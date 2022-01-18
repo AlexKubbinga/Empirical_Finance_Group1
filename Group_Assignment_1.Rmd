@@ -27,5 +27,18 @@ library(skimr)
 library(vroom)
 library(mosaic)
 library(lubridate)
+library(readxl)
 
 ```
+
+```{r}
+PS1_Monthly <- read_excel("PS1_Monthly.xlsx")
+
+```
+
+```{r}
+
+PS1_Monthly %>% mutate()
+
+```
+
