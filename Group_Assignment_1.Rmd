@@ -91,7 +91,7 @@ PS1_Monthly %>%
   labs(title = 'Investment on Microsoft with/without dividend',
        subtitle = 'Red line for one with dividend and blue for without',
        y = 'cumulative return') +
-  # geom_line(aes(x=date, y=tot_sprtrn)) + why do we need this?
+   geom_line(aes(x=date, y=tot_sprtrn)) +
   NULL
 
 PS1_Monthly %>% 
@@ -102,7 +102,7 @@ PS1_Monthly %>%
   labs(title = 'Investment on GE with/without dividend',
        subtitle = 'Red line for one with dividend and blue for without',
        y = 'cumulative return') +
-  # geom_line(aes(x=date, y=tot_sprtrn)) + why do we need this?
+  geom_line(aes(x=date, y=tot_sprtrn)) +
   NULL
 ```
 
@@ -157,6 +157,7 @@ HPR_daily <- HPR_daily %>%
   clean_names() %>% 
   mutate(tot_RET_MS = cumprod(msft+1),
          tot_RET_GE = cumprod(ge+1),
+         tot_RET_JPM = cumprod(jpm+1),
          tot_sprtrn = cumprod(sprtrn+1))
 
 # plot daily total return for MS, GE and SP500
@@ -213,6 +214,109 @@ to be finished
 
 # Question 7
 ```{r}
+HPR_daily %>% 
+  select(LRET) %>%
+  filter(stocks=="msft") %>%
+  summarize(mean_LRET = mean(LRET),
+            var_LRET = var(LRET),
+            skew_LRET = skewness(LRET),
+            kurt_LRET = kurtosis(LRET))
 
+
+HPR_daily %>% 
+  select(LRET) %>% 
+  ggplot() + geom_histogram( aes(x=LRET))
+
+PS1_Monthly %>% 
+  select(LRET) %>% 
+  ggplot() + geom_histogram( aes(x=LRET))
+
+
+```
+```{r}
+portfolio <- HPR_daily %>%
+  filter(stocks %in% c("msft","jpm","ge")) 
+```
+
+```{r}
+microsoft <- portfolio %>% 
+  filter(stocks=='msft') %>%
+  select("LRET")
+
+jpm <- portfolio %>% 
+  filter(stocks=='jpm') %>%
+  select("LRET")
+
+ge <- portfolio %>% 
+  filter(stocks=='ge') %>%
+  select("LRET")
+
+tot_ret <- portfolio %>%
+  filter(stocks=='ge') %>%
+  select("tot_sprtrn")
+
+sp<- log(tot_ret$tot_sprtrn+1)
+
+covariance<- data.frame(microsoft$LRET, jpm$LRET, ge$LRET, sp)
+cov2<-data.frame((microsoft$LRET)^2, (jpm$LRET)^2, (ge$LRET)^2, (sp)^2)
+cov(covariance)
+cov(cov2)
+```
+
+```{r}
+portfolio <- portfolio %>%
+  mutate(ret_sq= RET^2,abs_ret=abs(RET))
+
+acf(portfolio$RET)
+acf(portfolio$ret_sq)
+acf(portfolio$abs_ret)
+```
+```{r}
+portfolio <-portfolio %>% 
+  group_by(stocks) %>% 
+  mutate(gross_RET = RET+1)
+
+# calculate total returns which is also cumulative product of gross returns
+portfolio <- portfolio %>% 
+  group_by(stocks) %>% 
+  mutate(tot_RET = cumprod(gross_RET))
+
+tot_ms = portfolio %>% 
+  filter(stocks=="msft") %>%
+  filter(date==max(date)) %>%
+  select(tot_RET)
+
+tot_jpm = portfolio %>% 
+  filter(stocks=="jpm") %>%
+  filter(date==max(date)) %>%
+  select(tot_RET)
+
+tot_ge = portfolio %>% 
+  filter(stocks=="ge") %>%
+  filter(date==max(date)) %>%
+  select(tot_RET)
+
+#Selecting 0.4, 0.3, 0.3 as the weights
+portfolio_ret <- 0.4*tot_ms$tot_RET + 0.3*tot_jpm$tot_RET +0.3*tot_ge$tot_RET
+portfolio_ret
+
+portfolio <- portfolio %>%
+  mutate(port_ret=0.4*tot_RET_MS+0.3*tot_RET_JPM+ 0.3*tot_RET_GE)
+```
+
+```{r}
+portfolio$date<-as.Date(portfolio$date)
+
+portfolio %>% 
+  group_by(date) %>%
+  ggplot() + 
+  geom_line(aes(x=date, y=tot_RET_MS), color='red') +
+  geom_line(aes(x=date, y=tot_RET_JPM), color='yellow') +
+  geom_line(aes(x=date, y=tot_RET_GE), color= 'green') +
+  geom_line(aes(x=date, y=port_ret), color = 'black') +
+  labs(title = '',
+       subtitle = '',
+       y = '') +
+  NULL
 ```
 
