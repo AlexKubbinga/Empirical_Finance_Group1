@@ -176,16 +176,6 @@ to be finished
 
 # Question 6
 ```{r}
-# HPR_daily <- HPR_daily %>%  
-#   mutate(LRET_msft = log(msft + 1),
-#          LRET_xom = log(xom + 1),
-#          LRET_ge = log(ge + 1),
-#          LRET_jpm = log(jpm + 1),
-#          LRET_intc = log(intc + 1),
-#          LRET_c = log(c + 1),
-#          LRET_vwretd = log(vwretd + 1),
-#          LRET_sprtrn = log(sprtrn + 1))
-
 # generate log return variable
 HPR_daily <- HPR_daily %>% 
   pivot_longer(cols = 2:9,
@@ -214,109 +204,134 @@ to be finished
 
 # Question 7
 ```{r}
+# statistical properties of daily log return
 HPR_daily %>% 
   select(LRET) %>%
-  filter(stocks=="msft") %>%
-  summarize(mean_LRET = mean(LRET),
-            var_LRET = var(LRET),
-            skew_LRET = skewness(LRET),
-            kurt_LRET = kurtosis(LRET))
+  filter(stocks == "msft") %>%
+  summarize(mean_LRET_D = mean(LRET),
+            var_LRET_D = var(LRET),
+            skew_LRET_D = skewness(LRET),
+            kurt_LRET_D = kurtosis(LRET))
 
+# statistical properties of daily log return
+PS1_Monthly %>% 
+  filter(TICKER == 'MSFT') %>% 
+  summarize(mean_LRET_M = mean(LRET),
+            var_LRET_M = var(LRET),
+            skew_LRET_M = skewness(LRET),
+            kurt_LRET_M = kurtosis(LRET))
 
+# plot histogram
 HPR_daily %>% 
   select(LRET) %>% 
-  ggplot() + geom_histogram( aes(x=LRET))
+  ggplot() + geom_histogram(aes(x = LRET))
 
 PS1_Monthly %>% 
   select(LRET) %>% 
-  ggplot() + geom_histogram( aes(x=LRET))
-
+  ggplot() + geom_histogram(aes(x = LRET))
 
 ```
+
+Comment on histograms:
+tbf
+
+# Question 8 & 9
 ```{r}
-portfolio <- HPR_daily %>%
-  filter(stocks %in% c("msft","jpm","ge")) 
+data <- read_excel("PS1_Daily.xlsx", sheet = 'HPR_daily', skip = 1) %>%
+  clean_names()
+
+# covariance matrix for log returns
+LR.msft <- log(data$msft + 1)
+LR.jpm <- log(data$jpm + 1)
+LR.ge <- log(data$ge + 1)
+LR.sp <- log(data$sprtrn + 1)
+LR <- cbind(LR.msft, LR.jpm, LR.ge, LR.sp)
+cov(LR)
+
+# covariance matrix for log returns squared
+LR2.msft <- log(data$msft ^ 2 + 1)
+LR2.jpm <- log(data$jpm ^ 2 + 1)
+LR2.ge <- log(data$ge ^ 2 + 1)
+LR2.sp <- log(data$sprtrn ^ 2 + 1)
+LR2 <- cbind(LR2.msft, LR2.jpm, LR2.ge, LR2.sp)
+cov(LR2)
 ```
 
+Discussion on results:
+tbf
+
+# Question 10
 ```{r}
-microsoft <- portfolio %>% 
-  filter(stocks=='msft') %>%
-  select("LRET")
+# acf for returns
+acf(data[, c(2, 4, 5, 9)])
 
-jpm <- portfolio %>% 
-  filter(stocks=='jpm') %>%
-  select("LRET")
+# acf for return squared
+acf(data[, c(2, 4, 5, 9)] %>% 
+      mutate(msft = msft ^ 2, jpm = jpm ^ 2,
+             ge = ge ^ 2, sprtrn = sprtrn ^ 2))
 
-ge <- portfolio %>% 
-  filter(stocks=='ge') %>%
-  select("LRET")
+# acf for return absolute
+acf(data[, c(2, 4, 5, 9)] %>% 
+      mutate(msft = abs(msft), jpm = abs(jpm),
+             ge = abs(ge), sprtrn = abs(sprtrn)))
 
-tot_ret <- portfolio %>%
-  filter(stocks=='ge') %>%
-  select("tot_sprtrn")
-
-sp<- log(tot_ret$tot_sprtrn+1)
-
-covariance<- data.frame(microsoft$LRET, jpm$LRET, ge$LRET, sp)
-cov2<-data.frame((microsoft$LRET)^2, (jpm$LRET)^2, (ge$LRET)^2, (sp)^2)
-cov(covariance)
-cov(cov2)
 ```
 
+Discussion on results:
+tbf
+
+# Question 11 & 12
 ```{r}
-portfolio <- portfolio %>%
-  mutate(ret_sq= RET^2,abs_ret=abs(RET))
+# randomly generate weights for portfolio
+set.seed(1234)
+random <- runif(3)
+w <- array(random / sum(random), c(3, 1))
+print(w)
+returns <- as.matrix(data[, c(2, 4, 5)])
 
-acf(portfolio$RET)
-acf(portfolio$ret_sq)
-acf(portfolio$abs_ret)
-```
-```{r}
-portfolio <-portfolio %>% 
-  group_by(stocks) %>% 
-  mutate(gross_RET = RET+1)
+# portfolio return time series
+ret.p <- returns %*% w
 
-# calculate total returns which is also cumulative product of gross returns
-portfolio <- portfolio %>% 
-  group_by(stocks) %>% 
-  mutate(tot_RET = cumprod(gross_RET))
+# total return time series on this portfolio
+portfolio <- cumprod(ret.p + 1)
 
-tot_ms = portfolio %>% 
-  filter(stocks=="msft") %>%
-  filter(date==max(date)) %>%
-  select(tot_RET)
-
-tot_jpm = portfolio %>% 
-  filter(stocks=="jpm") %>%
-  filter(date==max(date)) %>%
-  select(tot_RET)
-
-tot_ge = portfolio %>% 
-  filter(stocks=="ge") %>%
-  filter(date==max(date)) %>%
-  select(tot_RET)
-
-#Selecting 0.4, 0.3, 0.3 as the weights
-portfolio_ret <- 0.4*tot_ms$tot_RET + 0.3*tot_jpm$tot_RET +0.3*tot_ge$tot_RET
-portfolio_ret
-
-portfolio <- portfolio %>%
-  mutate(port_ret=0.4*tot_RET_MS+0.3*tot_RET_JPM+ 0.3*tot_RET_GE)
 ```
 
 ```{r}
-portfolio$date<-as.Date(portfolio$date)
+# data preparation for plotting
+df <- read_excel("PS1_Daily.xlsx", sheet = 'HPR_daily', skip = 1) %>%
+  clean_names() %>% 
+  select(c(1, 2, 4, 5)) %>% 
+  mutate(msft = cumprod(msft+1),
+         ge = cumprod(ge+1),
+         jpm = cumprod(jpm+1))
+df <- cbind(df, portfolio)
+df <- df %>% 
+  pivot_longer(cols = 2:5, names_to = 'stock', values_to = 'total_return')
 
-portfolio %>% 
-  group_by(date) %>%
-  ggplot() + 
-  geom_line(aes(x=date, y=tot_RET_MS), color='red') +
-  geom_line(aes(x=date, y=tot_RET_JPM), color='yellow') +
-  geom_line(aes(x=date, y=tot_RET_GE), color= 'green') +
-  geom_line(aes(x=date, y=port_ret), color = 'black') +
-  labs(title = '',
-       subtitle = '',
-       y = '') +
+# portfolio vs msft
+df %>% 
+  filter(stock %in% c('msft', 'portfolio')) %>% 
+  ggplot(aes(date, total_return, color = stock)) +
+  geom_line(aes(group = stock)) +
   NULL
+
+# portfolio vs jpm
+df %>% 
+  filter(stock %in% c('jpm', 'portfolio')) %>% 
+  ggplot(aes(date, total_return, color = stock)) +
+  geom_line(aes(group = stock)) +
+  NULL
+
+# portfolio vs ge
+df %>% 
+  filter(stock %in% c('ge', 'portfolio')) %>% 
+  ggplot(aes(date, total_return, color = stock)) +
+  geom_line(aes(group = stock)) +
+  NULL
+
 ```
+
+Discussion on results:
+tbf
 
