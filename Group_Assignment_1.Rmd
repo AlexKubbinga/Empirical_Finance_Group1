@@ -109,6 +109,8 @@ PS1_Monthly %>%
 Commentary:
 From the graphs above we can see that dividends may reduce the profit you could have obtained from the one with dividend payments.
 
+The graphs above show that when we factor dividends into the returns for Microfsoft and General Electric the returns are higher. For Microsoft we can see that until around 2005 the returns were almost identical and then after 2005 the returns with dividends became much larger. In 2015 we see about an 50% increase in returns when including dividends compared to without. For General Electic the returns with dividence quickly rose above the returns without and stayed higher. The returns followed the same rising and fallings trends, but in 2015 were double the returns without dividends. 
+
 # Question 3
 ```{r}
 # PS1_Monthly <- PS1_Monthly %>%  
@@ -147,6 +149,8 @@ Discussion on the result:
 The two types of return nearly overlapped!
 not finished, still open to discussion
 
+The graph above shows that the two lines, log returns vs simple returns, are almost identical. We can see that the normal returns peaks are a little higher than the log returns, but otherwise they are identical. This is representative of the nature of log returns vs simple returns. Log returns will be similar but always a little bit less than the simple returns. The simple returns will give us a weighted sum of our simple returns whereas the log returns sum all of the log returns for the specific time period. Log returns are useful because they are usually distributed normally which fits better for modelling and theory and statistically properties are easier to use. They are also time consistent meaning we can add periods together.
+
 # Question 4 & 5
 ```{r}
 # load daily data
@@ -174,6 +178,8 @@ HPR_daily %>%
 Discussion on results compared with monthly data:
 to be finished
 
+When comparing the two graphs the trends of the returns for Microsoft and General Electric look very similar. Microsoft looks to trending upwards and at about 120 cumulative return. General electric is fluctuating between about 5 and 10 cumulative return. The main difference is that we are looking at more data points and so the graphs are bouncing around more day to day but the long term trends remain the same.
+
 # Question 6
 ```{r}
 # generate log return variable
@@ -196,11 +202,60 @@ HPR_daily %>%
             kurt_RET = kurtosis(RET),
             kurt_LRET = kurtosis(LRET))
 
+#create table to compare daily and monthly
+daily =HPR_daily %>% 
+  select(c(RET,LRET)) %>% 
+  summarize(mean_RET = mean(RET),
+            mean_LRET = mean(LRET),
+            var_RET = var(RET),
+            var_LRET = var(LRET),
+            skew_RET = skewness(RET),
+            skew_LRET = skewness(LRET),
+            kurt_RET = kurtosis(RET),
+            kurt_LRET = kurtosis(LRET)) %>%
+  mutate(clean_company = ifelse(stocks == "jpm", "JPM",
+                    ifelse(stocks == "sprtrn", "S&P500",
+                    ifelse(stocks == "c", "CITI",
+                    ifelse(stocks == "xom", "EXXON MOBIL", 
+                    ifelse(stocks == "ge", "GENERAL ELECTRIC",
+                    ifelse(stocks == "vwretd", "vwretd",
+                    ifelse(stocks == "intc", "INTEL",
+                    ifelse(stocks == "msft", "MICROSOFT","no"))))))))) %>%
+  select("clean_company", "mean_LRET", "var_LRET", "skew_LRET", "kurt_LRET") %>%
+  rename(Company=clean_company, 
+         Daily_Mean_LRET=mean_LRET, 
+         Daily_Var_LRET=var_LRET, 
+         Daily_Skew_LRET=skew_LRET, 
+         Daily_Kurt_LRET=kurt_LRET)
 
+monthly = PS1_Monthly %>% 
+  select(c(RET,LRET)) %>% 
+  summarize(mean_RET = mean(RET),
+            mean_LRET = mean(LRET),
+            var_RET = var(RET),
+            var_LRET = var(LRET),
+            skew_RET = skewness(RET),
+            skew_LRET = skewness(LRET),
+            kurt_RET = kurtosis(RET),
+            kurt_LRET = kurtosis(LRET))%>%
+  select("clean_company", "mean_LRET", "var_LRET", "skew_LRET", "kurt_LRET") %>%
+  rename(Company=clean_company, 
+         Monthly_Mean_LRET=mean_LRET, 
+         Monthly_Var_LRET=var_LRET, 
+         Monthly_Skew_LRET=skew_LRET, 
+         Monthly_Kurt_LRET=kurt_LRET)
+
+LRET_stats = merge(daily, monthly, by="Company", all.x=T)
+LRET_stats = LRET_stats[, c(1,2,6,3,7,4,8,5,9)]
+LRET_stats
 ```
 
 Discussion on results compared with monthly metrics:
 to be finished
+
+Compared to the monthly log returns, the daily returns have a much lower average, variance, skewness, and a much higher kurtosis. 
+
+I am not completely sure why though so this needs more information
 
 # Question 7
 ```{r}
@@ -233,7 +288,7 @@ PS1_Monthly %>%
 ```
 
 Comment on histograms:
-tbf
+Looking at the histograms its is very clear that the daily returns are much less spread out. A large majority of our data is centered at 0 with the ends of our distribution around 0.15 and -0.15. This is normally distributed with very little spread. For monthly we also have a somewhat normally distributed curve but our data is more spread out. The data also centers at 0 but we have outliers as far as 0.5 and -0.9. This distribution also looks to be slightly right skewed because of the nature of the outliers. We would expect both of these distributions to be normally distributed because returns are expected to follow a lognormal distribution. 
 
 # Question 8 & 9
 ```{r}
@@ -258,7 +313,7 @@ cov(LR2)
 ```
 
 Discussion on results:
-tbf
+Covariance is a statistical measure that lets us know how our stocks returns move in compariason to each other. A positive covariance means they move together and a negatice means they move opposite. Though it sounds like covariance and correlation are the same they have a key difference. Covariance will tell us the direction a stock will move in comparisom to another while correlation tells us the strength of the relationship between the stocks. All of the covariances are positive which means that the returns of all of our stocks will somewhat move together.
 
 # Question 10
 ```{r}
@@ -296,7 +351,7 @@ ret.p <- returns %*% w
 portfolio <- cumprod(ret.p + 1)
 
 ```
-
+If we are to keep fixed weights over time this means that no matter how a certain stock is performing we will continue to weight it the same in the portfolio. This is most likely not a good idea because as more information and data comes in we need to be flexible with our allocations so that we can maximize returns in the future. 
 ```{r}
 # data preparation for plotting
 df <- read_excel("PS1_Daily.xlsx", sheet = 'HPR_daily', skip = 1) %>%
@@ -333,5 +388,4 @@ df %>%
 ```
 
 Discussion on results:
-tbf
-
+The graph shows us that our portfolio out performed two of the three stocks in the portfolio. It out performed General Electric and JP Morgan. The portfolio did not outperform Microsoft. In the real world when you don't know how a stock will perform this portfolio proves to be a safer investment than investing in one stock at 100%. In our case though all stocks performed well over time and therefore it would be impossible for the portfolio not to perform well, but if one or more stocks returns decreased overtime depending on the weights chosen that could have detrimental effects on our portfolio returns.
