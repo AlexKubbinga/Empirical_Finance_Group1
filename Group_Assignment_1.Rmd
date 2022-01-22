@@ -351,9 +351,9 @@ ret.p <- returns %*% w
 
 # total return time series on this portfolio
 portfolio <- cumprod(ret.p + 1)
-
 ```
 If we are to keep fixed weights over time this means that no matter how a certain stock is performing we will continue to weight it the same in the portfolio. This is most likely not a good idea because as more information and data comes in we need to be flexible with our allocations so that we can maximize returns in the future. 
+
 ```{r}
 # data preparation for plotting
 df <- read_excel("PS1_Daily.xlsx", sheet = 'HPR_daily', skip = 1) %>%
