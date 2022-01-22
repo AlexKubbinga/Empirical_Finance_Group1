@@ -88,7 +88,7 @@ PS1_Monthly %>%
   ggplot() + 
   geom_line(aes(x=date, y=tot_RET), color='red') +
   geom_line(aes(x=date, y=tot_RETX), color='blue') +
-  labs(title = 'Investment on Microsoft with/without dividend',
+  labs(title = 'Investment in Microsoft with/without dividend',
        subtitle = 'Red line for one with dividend and blue for without',
        y = 'cumulative return') +
    geom_line(aes(x=date, y=tot_sprtrn)) +
@@ -99,7 +99,7 @@ PS1_Monthly %>%
   ggplot() + 
   geom_line(aes(x=date, y=tot_RET), color='red') +
   geom_line(aes(x=date, y=tot_RETX), color='blue') +
-  labs(title = 'Investment on GE with/without dividend',
+  labs(title = 'Investment in GE with/without dividend',
        subtitle = 'Red line for one with dividend and blue for without',
        y = 'cumulative return') +
   geom_line(aes(x=date, y=tot_sprtrn)) +
@@ -255,7 +255,7 @@ to be finished
 
 Compared to the monthly log returns, the daily returns have a much lower average, variance, skewness, and a much higher kurtosis. 
 
-I am not completely sure why though so this needs more information
+- PS--- HIGH KURTOSIS FOR INVESTORS MEANS EXTREME RETURS (could be positive or negative).
 
 # Question 7
 ```{r}
@@ -313,7 +313,9 @@ cov(LR2)
 ```
 
 Discussion on results:
-Covariance is a statistical measure that lets us know how our stocks returns move in compariason to each other. A positive covariance means they move together and a negatice means they move opposite. Though it sounds like covariance and correlation are the same they have a key difference. Covariance will tell us the direction a stock will move in comparisom to another while correlation tells us the strength of the relationship between the stocks. All of the covariances are positive which means that the returns of all of our stocks will somewhat move together.
+Covariance is a statistical measure that lets us know how our stocks returns move in comparison to each other. A positive covariance means they move together and a negative means they move opposite. Though it sounds like covariance and correlation are the same they have a key difference. Covariance will tell us the direction a stock will move in comparison to another while correlation tells us the strength of the relationship between the stocks. All of the covariances are positive which means that the returns of all of our stocks will somewhat move together.
+
+PS: NEED TO WRITE INFERENCE OF VALUES
 
 # Question 10
 ```{r}
