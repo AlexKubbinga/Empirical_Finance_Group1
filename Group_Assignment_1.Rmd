@@ -12,6 +12,13 @@ output:
       toc_float:
         collapsed: false
 ---
+Group 1 ：
+Alex Kubbinga	3752590
+Jose Laffitte	3607979
+Lauren Wade	3730969
+Purva Sikri 	3493543
+Shengcheng Liu 	3760318
+Xinyue Zhang	3761621
 
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = TRUE)
@@ -136,7 +143,7 @@ PS1_Monthly %>%
 PS1_Monthly %>% 
   filter(clean_company == "MICROSOFT") %>% 
   ggplot() + 
-  geom_line(aes(x=date, y=RET), color='red') +
+  geom_line(aes(x=date, y=RET), color='red',alpha=0.5) +
   geom_line(aes(x=date, y=LRET), color='yellow') +
   labs(title = 'Normal return VS log return for Microsoft',
        subtitle = 'Red line for normal return and yellow for log return',
