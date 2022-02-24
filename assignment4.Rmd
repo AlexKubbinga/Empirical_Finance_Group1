@@ -1,0 +1,288 @@
+---
+title: "Assignment 4"
+author: "Group1"
+date: "24/02/2022"
+output: html_document
+---
+
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## R Markdown
+
+```{r}
+library(tidyverse)
+library(ggplot2)  
+library(here)
+library(janitor) # clean_names()
+library(skimr)
+library(vroom)
+library(mosaic)
+library(lubridate)
+library(readxl)
+library(quantmod)
+library(xts)
+library(moments)
+library(readxl)
+library(forecast)
+library(roll)
+library(fGarch)
+library(qcc)
+library(MTS)
+library(caret)
+```
+
+```{r}
+#Sheet 1
+hpr_daily <- read_excel("PS1_Daily.xlsx", sheet=1, skip = 1) %>% 
+  mutate(DATE = as.Date(DATE))
+
+#Sheet 2
+prices_daily <- read_excel("PS1_Daily.xlsx", sheet=2, skip = 1) %>% 
+  mutate(DATE = as.Date(DATE))
+```
+
+## Log or returns
+```{r, log of returns}
+# calculating log returns
+hpr_daily<-hpr_daily %>% 
+  mutate(Ret_msft=log(1+MSFT),
+         Ret_ge=log(1+GE),Ret_jpm=log(1+JPM),Ret_sprtrn=log(1+SPRTRN))
+```
+
+## Question 2
+```{r}
+#Data  for portfolios on operating profit 
+op<- read.csv("Portfolios_Formed_on_OP.CSV", skip = 24, stringsAsFactors = FALSE, strip.white=TRUE, nrow=702) %>%
+  clean_names()
+
+op_clean <- op %>%
+  rename(date=x)
+
+op_clean$date <- parse_date(as.character(op_clean$date), format = "%Y%m")
+
+head(op_clean)
+
+#Data on portfoios formed on investmnet 
+inv <- read.csv("Portfolios_Formed_on_INV.CSV", skip = 17, stringsAsFactors = FALSE, strip.white=TRUE,  nrow=702) %>%
+  clean_names()
+
+inv_clean <- inv %>%
+  rename(date=x)
+
+inv_clean$date <- parse_date(as.character(inv_clean$date), format = "%Y%m")
+
+head(inv_clean)
+
+#Data on portfolios formed on portfolios by dividend yeild 
+dy <- read.csv("Portfolios_Formed_on_D-P.CSV", skip = 19, stringsAsFactors = FALSE, strip.white=TRUE, nrow=1134) %>%
+  clean_names()
+
+dy_clean <- dy %>%
+  rename(date=x)
+
+dy_clean$date <- parse_date(as.character(dy_clean$date), format = "%Y%m")
+
+head(dy_clean)
+
+#Data on momentum 
+mom <- read.csv("10_Portfolios_Prior_12_2.CSV", skip = 10, stringsAsFactors = FALSE, strip.white=TRUE, nrows = 1140) %>% 
+  clean_names()
+
+mom_clean <- mom %>%
+  rename(date=x)
+
+mom_clean$date <- parse_date(as.character(mom_clean$date), format = "%Y%m")
+
+head(mom_clean)
+
+#49 portfolios data 
+port49 <- read.csv("49_Industry_Portfolios.CSV",skip = 11, stringsAsFactors = FALSE, strip.white=TRUE, nrows =1146) %>% 
+  clean_names()
+
+port49_clean <- port49 %>%
+  rename(date=x)
+
+port49_clean$date <- parse_date(as.character(port49_clean$date), format = "%Y%m")
+
+head(port49_clean) 
+
+  
+```
+
+
+```{r}
+ff <- read_csv("F-F_Research_Data_Factors.CSV", skip = 3, n_max = 1146, col_names = TRUE)
+ff_clean <- ff %>%
+  rename(date=...1)%>%
+  clean_names()
+
+ff_clean$date <- parse_date(as.character(ff_clean$date), format = "%Y%m")
+
+head(ff_clean) 
+
+```
+
+#PCA for all - Question 3 
+```{r}
+pca2<- function(x){
+  ncol<- ncol(x)
+  diffOmit <- diff(as.matrix(x[,2:ncol]))
+  da <- na.omit(x)
+  ddat <- na.omit(diffOmit)
+  n <- dim(ddat)[1]
+  options(digits = 4)
+  pca<- prcomp(ddat,5)
+  summary(pca)
+}
+
+pca_op<- pca2(op_clean)
+print(pca_op)
+
+pca_inv <- pca2(inv_clean)
+print(pca_inv)
+
+pca_dy <- pca2(dy_clean)
+print(pca_dy)
+
+pca_mom <- pca2(mom_clean)
+print(pca_mom)
+
+pca_port49 <- pca2(port49_clean)
+print(pca_port49)
+```
+
+
+*Answer 3:* 
+Principal component analysis aid to condense data to fewer dimensions in order to better understand and visualize the data. This is specially used when the data to be analysed is multiple dimensions and the goal of this is to help identify the principal components where the variation in data is maximal. 
+The goal in our data set is to en-capture most of the information while reducing the dimensionality. Here, 95% of the return variation can be explained by:
+ - 3 PC's for portfolios formed on operating profit and investment.
+ - 4 PC's for portfolios formed on dividend yield. 
+ - 3 PC's for portfolios formed on momentum.
+ - 32 PC's for 49 industry portfolios.
+In the above mentioned cases, we can just use the above-mentioned PC's to analyse the data and remove the rest. This action will reduce the high dimensionality of the data but still help us retain 95% of the information. As we can see the 49 industry portfolios require a lot more dimensions to explain 95% of the variation in returns which makes the visualisation as well as analysis a lot more complex. 
+ 
+
+# Question 4
+```{r}
+reg<- function(df){
+  total <- inner_join(df,ff_clean, by="date")
+  total$ex_ret1<- 0
+  ncol<- ncol(total)
+  adj_rsq <- {}
+  for (i in 2:(ncol-5)){
+    total[ncol]<- total[i] - total$rf #formula for excess returns
+    linear<- lm(ex_ret1 ~ mkt_rf + smb+ hml, data=total)
+    adj_rsq[i-1] <- summary(linear)$adj.r.squared
+  }
+  paste0(" ADJUSTED R-SQUARED FOR ", deparse(substitute(df)), " IS ", mean(adj_rsq), " MEDIAN IS ", median(adj_rsq), " S.D. IS ", sd(adj_rsq))
+}
+
+operating_profit2 <- reg(op_clean)
+print(operating_profit2)
+
+investment2<- reg(inv_clean)
+print(investment2)
+
+dividend_yeild2 <- reg(dy_clean)
+print(dividend_yeild2)
+
+momentum2 <- reg(mom_clean)
+print(momentum2)
+
+portfolio49_2<- reg(port49_clean)
+print(portfolio49_2)
+
+
+```
+
+*Answer 4:*
+This is the fama-french model that is trying to predict how dependent the excess returns of a portfolio (as compared to the risk-free returns) are on - market risk premium, SMB (small minus big), HML (high minus low). This is an extension of CAPM; that works better in most scenarios as it adds two extra elements of risk. Further, this model has an assumption that small companies perform better than big companies.
+
+Here we can see that the most accuracy in prediction (R-squared used as a proxy) is for portfolios formed on operating profitability and the least accuracy or the 49 industry portfolios. Further, the 49 industry portfolios also have a very high standard deviation i.e. SMB, HML, and market risk premium just account for 52% of the variation in excess returns as well as have a very high standard deviation in the R-squared.
+
+
+# Question 5 
+```{r}
+reg2 <- function(df) {
+  total <- merge(df, ff_clean, by = "date")
+  pca = prcomp(total[c(2:(ncol(total)-4))])
+  adj_rsq <- c()
+  for(i in 2:(ncol(total)-4)) {
+    regdata <- total %>%
+      summarise(
+        ex_ret = (as.numeric(total[ , i]) - as.numeric(rf))
+        )
+    regdata <- cbind(regdata, pca$x[,1], pca$x[,2], pca$x[,3])
+    lm_reg<- train(ex_ret~., data = regdata, method = "lm")
+    adj_rsq <- c(adj_rsq, summary(lm_reg$finalModel)$adj.r.squared)
+  }
+  paste0(" Found Adjusted R-squared for ", deparse(substitute(df)), " is ", mean(adj_rsq), " median is ", median(adj_rsq), "S.D. is ", sd(adj_rsq))
+}
+
+
+operating_profit3 <- reg2(op_clean)
+print(operating_profit3)
+
+investment2<- reg2(inv_clean)
+print(investment2)
+
+dividend_yeild2 <- reg2(dy_clean)
+print(dividend_yeild2)
+
+momentum2 <- reg2(mom_clean)
+print(momentum2)
+
+portfolio49_2<- reg2(port49_clean)
+print(portfolio49_2)
+
+```
+
+*Answer 5:*
+> As we can see, the Adjusted R-squared has improved for all the portfolios (higher mean, median, and lower standard deviation). Further, the R-squared for portfolios formed on operating profit is the highest and for 49 industry portfolios is the lowest. This is understandable as thee 3 PC's in portfolio's formed on investment only explain 63.3% of the data. 
+
+> When compared with the previous regression, we can say that the regression using PCA has preformed better than the fama-french model i.e. owing to the - higher R-squared mean, median, and lower standard deviation, the 3 PC's explain more variability in the excess portfolio returns as compared to the market risk premium, SMB, and HML used in the fama-french model. Therefore, we have successfully been able to reduce the dimensionality of data without loosing out much information. 
+
+> NOTE: This improvement in R-squared is specially a lot more for the portfolios formed on dividend yield and momentum.
+
+*Answer 6:*
+> Although PCA is an efficient way of reducing the dimensionality of big data, it has some limitations (due to it's complexity in understanding) as well as ways to ovecome those limitations which are explained below: 
+ - It doesn't tell us exactly which factors have how much impact as it tends to club features in order to reduce the dimensionality of the data. Therefore, as we can see in our case also, we know that the 3 PC's explain 95.4% of the variation in excess portfolio returns for portfolios formed on operating profit. But we don't know which variables impact this excess return in specific? how much is the impact of these variables? which variables are redundant?
+ - In case of financial models, the prices/reeturns may be skewed or have non-linear relationships and PCA is not very good at capturing these relations. Thefore, we need to transform them into linear variables and reelationships before running a PCA.
+ - PCA is very senitive to the scale of the inputs/features i.e. the higher the range of a variable, the more likely it is to be one of the earlier PC's irrespective of how much variability it actually explaind. Thefore, to assauge this problem we stnadrdise the data vefore running a PCA.
+ - Lastly, there tends to be a presence of missing vales (data not available for a day) and outliers (as the data is skewewd, prices are volatile, hugely governed by public sentiment, and could be affected by extrenal happenings or black swan events) in economic and finnacial datasets.  PCA doesnt handle missing values or outliers well, so we need to remove outliers as well as missing values before doing a PCA.  
+
+
+
+
+#Question 7
+```{r}
+PS4_Daily<- read_excel("PS4_Daily.xlsx", sheet=1, col_names = TRUE) %>%
+  clean_names() 
+
+
+
+```
+
+# Question 8
+```{r}
+pca<- function(x){
+  ncol<- ncol(x)
+  diffOmit <- diff(as.matrix(x[,2:ncol]))
+  da <- na.omit(x)
+  ddat <- na.omit(diffOmit)
+  n <- dim(ddat)[1]
+  options(digits = 4)
+  pca<- prcomp(ddat,5)
+  summary(pca)
+}
+
+pca(PS4_Daily)
+```
+
+```{r}
+pca(dy_clean, ncp=3, )
+```
+

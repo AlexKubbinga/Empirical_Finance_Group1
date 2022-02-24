@@ -1,0 +1,404 @@
+---
+title: "Finance Individual Assignment - 1"
+author: "Purva Sikri"
+date: "25/01/2022"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+# QUESTION 1
+
+```{r, load_libraries, include = FALSE}
+library(tidyverse)
+library(ggplot2)  
+library(here)
+library(janitor) # clean_names()
+library(skimr)
+library(vroom)
+library(mosaic)
+library(lubridate)
+library(readxl)
+library(quantmod)
+library(xts)
+library(moments)
+```
+
+Loading the dataset
+```{r}
+#Loading daily data 
+HPR_daily <- read_excel("PS1_Daily.xlsx", sheet = 'HPR_daily', skip = 1)
+
+#Cleaning dataset and fixing the format
+df <- HPR_daily %>% 
+  janitor::clean_names() %>% 
+  mutate(date=ymd(date))
+```
+
+## Part a and b
+```{r}
+#Taking data for the mentioned dates
+df <- df %>% 
+  filter(date<= "2002-12-31") %>% 
+  select(date,msft,ge,jpm)
+
+#Calculating the mean (MSFT, GE, and JPM)
+mean <- df[-1] %>% 
+  colMeans()
+print(mean)
+
+#Calculating the pairwise correlation and variance matrix (MSFT, GE, and JPM)
+pc <- df[-1] %>%
+  cov()
+print(pc)
+
+#Getting the variance matrix (MSFT, GE, and JPM)
+var <- diag(pc)
+print(var)
+```
+
+## Part c 
+```{r}
+#Matrix for returns
+returns_matrix <- df[-1]
+
+#Matrix for expected returns
+exp_ret <- matrix(colMeans(df[-1]))
+
+#Matrix for portfolio weights 
+e<-array(1/3, c(3,1))
+e<-array(e, c(3,1)) #3*1 - equal weighted
+
+#Matrix for variance and co-variances
+pc
+```
+
+## Part d 
+```{r}
+#Condition checking for the weights
+mat<-matrix(1, nrow = 3, ncol = 1)
+condition1 <- t(e)%*%mat == 1 
+print(condition1) #the condition that the sum of weights is 1 holds true 
+
+#Defining condition 2
+condition2 <- t(pc)==pc
+print(condition2) #the condition that transpose of the co-variance matrix and the co-variance matrix are the same holds true
+
+```
+
+## Part e - 1
+```{r}
+# Portfolio 1 (equal weighted Microsoft, GE, and JPM)
+# Return for portfolio 1
+return_equal_weight <- t(e)%*%exp_ret
+
+# Variance of portfolio 1
+var_eq<- t(e)%*%(pc%*%e)
+
+# Standard deviation of portfolio 1 
+stdev_equal_weight <- sqrt(var_eq)
+
+#Output 
+c1 <- cbind(return_equal_weight,var_eq,stdev_equal_weight)
+colnames(c1) <- c("Expected Return","Variance","SD")
+print(c1)
+```
+
+
+## Part e - 2
+```{r}
+# Defining weights for portfolio 2
+y <- matrix(c(0.8, 0.4,-0.2), ncol=1, nrow=3)
+
+# Returns for portfolio 2
+ret2 <- t(y)%*%exp_ret
+
+# Variance of portfolio 2 
+var2<- t(y)%*%(pc%*%y)
+
+#Standard deviation portfolio 2
+std2 <- sqrt(var2)
+
+#Output
+c2 <- cbind(ret2,var2,std2)
+colnames(c2) <- c("Expected Return","Variance", "SD")
+print(c2)
+
+#risk return trade off
+to <- ret2/std2
+print(to)
+
+#Covariance of the e and y portfolios made 
+cov2 <- t(e)%*%(pc%*%y)
+print(cov2)
+```
+
+
+## Part f
+```{r}
+#Making matrix A
+A <- matrix(2*pc,nrow = 3,ncol=3)
+A <- rbind(A,c(1,1,1))
+A <- cbind(A,c(1,1,1,0))
+
+# Now for matrix B
+b <- matrix(c(0,0,0,1),nrow = 4,ncol = 1)
+
+z <- solve(A) %*% b
+
+# The first three elements of zm are the portfolio weights m’=(mMSFT,mGE,mJPM) for the global minimum variance portfolio 
+m <- z[c(1,2,3)]
+cat("Weights for minimum variance portfolio (MSFT , GE , JPM):", m,  "\n")
+
+#Return for minimum variance portfolio
+return_m <- t(m)%*%exp_ret
+print(return_m)
+
+#Variance for minimum variance portfolio 
+variance_m<- t(m)%*%(pc%*%m)
+print(variance_m)
+
+#Standard deviation for minimum variance portfolio
+stdev_m <- sqrt(variance_m)
+print(stdev_m)
+```
+
+
+## Part g 
+```{r}
+# Making matrix A1
+A1 <- matrix(2*pc,nrow = 3,ncol=3)
+A1 <- cbind(A1,c(t(exp_ret)))
+A1 <- rbind(A1,c(t(exp_ret),0))
+A1 <- rbind(A1,c(1,1,1,0))
+A1 <- cbind(A1,c(1,1,1,0,0))
+A1
+
+# Making matrix b1
+b1 <- matrix(c(0,0,0),nrow = 3,ncol = 1)
+b1 <- rbind(b1,c(t(exp_ret[1])))
+b1 <- rbind(b1,1)
+b1
+
+#Solving
+Z2 = solve(A1) %*% b1
+
+# The first three elements of  are the portfolio weights X’=(mMSFT,mGE,mJPM) for the efficient portfolio
+x2 <- Z2[c(1,2,3)]
+x2 #weights for effiicient portfolio
+cat("Weights for the efficient portfolio (MSFT , GE , JPM):", x2,  "\n")
+
+#Return for the efficient portfolio
+return_x1 <- t(x2)%*%exp_ret
+print(return_x1)
+
+#Variance for the efficient portfolio
+variance_x1<- t(x2)%*%(pc%*%x2)
+print(variance_x1)
+
+#Standard deviation for the efficient portfolio
+stdev_x1 <- sqrt(variance_x1)
+print(stdev_x1)
+```
+
+## Part h 
+```{r}
+# efficient frontier - 1  
+# generating a sequence of alpha:
+alpha = seq(-1,1,length.out = 21)
+
+# create empty vectors for risk and return:
+risk_values = rep(NA, length(alpha))
+return_values = rep(NA, length(alpha))
+
+# use a for loop to iterate over vectors:
+for (i in 1:length(alpha)) {
+  # select current alpha:
+  a = alpha[i]
+  # calcualte z using M and X
+  z = a*m + (1-a)*x2
+  # calculate and store portfolio return and risk:
+  return_values[i] = t(z)%*%exp_ret
+  risk_values[i] = sqrt(t(z)%*%(pc%*%z))
+}
+
+#Making efficient frontier - 1
+ggplot(NULL, aes(risk_values,return_values))+
+  geom_point() +
+  labs(title="Efficient frontier - 1", y="Returns", x="Risk")+
+  NULL
+```
+
+## Part i 
+```{r}
+# Efficient frontier 2
+# Selecting period between 2/1/2003 and 31/12/2014 to make df2 for efficient frontier 2
+df2 <- HPR_daily %>% 
+  janitor::clean_names() %>% 
+  mutate(date=ymd(date)) %>%
+  filter(date >= "2003-01-02") %>% 
+  select(date,msft,ge,jpm)
+
+# Mean of new data
+mean2 <- df2[-1] %>% 
+  colMeans()
+print(mean2)
+
+#Covariance matrix of new data
+pc2 <- df2[-1] %>%
+  cov()
+print(pc2)
+
+# variances of new data
+var <- diag(pc2)
+print(var)
+
+# Making the returns matrix for new data
+returns_matrix <- df2[-1]
+print(returns_matrix)
+
+# Matrix for expected returns for new data
+exp_ret_2 <- matrix(colMeans(df2[-1]))
+print(exp_ret_2)
+
+# Matrix for variance and co-variances for new data
+pc2
+
+# Making matrix A for efficient frontier 2
+A <- matrix(2*pc2,nrow = 3,ncol=3)
+A <- rbind(A,c(1,1,1))
+A <- cbind(A,c(1,1,1,0))
+A
+
+# Making matrix b for efficient frontier 2
+b = matrix(c(0,0,0,1),nrow = 4,ncol = 1)
+b
+
+# Solving 
+z = solve(A) %*% b
+
+# The first three elements of zm are the portfolio weights m’=(mMSFT,mGE,mJPM) for the global
+# minimum variance portfolio 
+m <- z[c(1,2,3)]
+cat("Weights for minimum variance portfolio (MSFT , GE , JPM):", m,  "\n")
+
+# Return for minimum variance portfolio on dataset 2
+return_m <- t(m)%*%exp_ret_2
+print(return_m)
+
+# Variance for minimum variance portfolio on dataset 2
+variance_m<- t(m)%*%(pc2%*%m)
+print(variance_m)
+
+# Standard deviation for minimum variance portfolio on dataset 2
+stdev_m <- sqrt(variance_m)
+print(stdev_m)
+
+# Making matrix A1 for efficient frontier 2
+A1 <- matrix(2*pc2,nrow = 3,ncol=3)
+A1 <- cbind(A1,c(t(exp_ret_2)))
+A1 <- rbind(A1,c(t(exp_ret_2),0))
+A1 <- rbind(A1,c(1,1,1,0))
+A1 <- cbind(A1,c(1,1,1,0,0))
+A1
+
+#Making matrix b1 for efficient frontier 2
+b1 <- matrix(c(0,0,0),nrow = 3,ncol = 1)
+b1 <- rbind(b1,c(t(exp_ret_2[1])))
+b1 <- rbind(b1,1)
+b1
+
+#Solving
+Z2 = solve(A1) %*% b1
+
+# The first three elements of  are the portfolio weights X’=(mMSFT,mGE,mJPM) for the efficient portfolio
+x2 <- Z2[c(1,2,3)]
+x2
+cat("Weights for the efficient portfolio (MSFT , GE , JPM):", x2,  "\n")
+
+# Return for the efficient portfolio on dataset 2
+return_x1 <- t(x2)%*%exp_ret_2
+print(return_x1)
+
+# Variance for the efficient portfolio on dataset 2
+variance_x1<- t(x2)%*%(pc2%*%x2)
+print(variance_x1)
+
+# Standard deviation  the efficient portfolio on dataset 2
+stdev_x1 <- sqrt(variance_x1)
+print(stdev_x1)
+```
+
+```{r}
+#efficient frontier - 2
+# generate a sequence of alpha:
+alpha = seq(-1,1,length.out = 21)
+
+# create empty vectors for risk and return:
+risk_values2 = rep(NA, length(alpha))
+return_values2 = rep(NA, length(alpha))
+
+# use a for loop to iterate over vectors:
+for (i in 1:length(alpha)) {
+  # select current alpha:
+  a = alpha[i]
+  # calculate z using M and X
+  z = a*m + (1-a)*x2
+  # calculate and store portfolio return and risk:
+  return_values2[i] = t(z)%*%exp_ret_2
+  risk_values2[i] = sqrt(t(z)%*%(pc2%*%z))
+}
+
+#Making efficient frontier 2
+plot(risk_values2,return_values2,main="Efficient frontier 2",xlim = c(0.0145,0.0165), ylim = c(0.00035,0.00060), xlab = "Risk", ylab="Return")
+```
+## Part j
+> The two efficient datasets `df` and `df2` are portfolios for the same 3 companies (Microsoft, GE, and JPM) but have different time periods taken into account. Both the portfolios created have very different returns, covariances, minimum varaiance portfolios, and efficient frontiers (which could very well happen because of macro-economic happenings outside the control of the companies or internal happenings in the companies). Threfore, to delve deeper and make a more efficent long-term portfolio we need to either put in more assets or take different subsamples (to see if more stable returns and varainces are rendered). Further, as we calculated for 2 subsamples, more can be created to conduct a robustness analysis which will help us evaluate our decisions under the condition of uncertainity. 
+
+
+# Question 2 - Buffet's alpha
+
+## Sub-part 1 & 2 
+The alpha in CAPM is the risk-free rate added to the product of market risk premium and beta (market risk). **Therefore, a positive alpha indicates a higher return (as compared to the risk-free market) based on the systematic risk taken; represented by beta**. 
+
+Achieving a positive alpha means u are getting more expected return as compared to the systematic risk exercised – this is evidently a sign of good investment skill as there is an inherent risk return trade off that must be well understood and put to practice (on the basis of the efficient frontier and investor risk preferences mapped by the indifference curve). 
+
+Further, in case of Buffet, the paper rudimentally commends his investment/stock picking ability as he picked cheap, safe, and quality stocks that have low volatility, low beta, high payout ratios, and low price to book values. In turn, since all his stocks had low risk and comparatively higher returns – he had the advantage of a high alpha. 
+
+## Sub-part 3
+**It is highly unlikely because a positive CAPM is the outcome of good investment skill**. Nonetheless, a positive CAPM for a short time period could be due to randomness – but as the paper has taken a time frame of 30 years, Buffet definitely has superlative investment skills (top 5% performers for the given time frame). 
+
+Further, Buffet portrayed very good investment skill even in comparison to his managerial skills as his public stocks’ portfolio performed the best. He chose the cheapest, safest, and best quality stocks which rendered his Sharpe ratio at a high of 0.76 (double that of the market) and further enhanced the portfolio by using the stable and cheap leverage (insurance float).  
+
+## Sub-part 4
+**Yes**, my perception has definitely changed as before reading the paper, I assumed Buffet to have superlative performance ratios/measures such as a very high Sharpe ratio, Treynor’s ratio, Jenson’s alpha, and many more. But, after this I found out that he is a prudent investor who used fundamental portfolio management axioms in a very efficient way and much before people were aware of them (over 50 years ago or so). He had a Sharpe ratio of 0.76 (double the market), which is not very surprising.  
+
+Buffet tried to buy cheap, safe, and quality stocks (with low beta, low volatility, and high payout ratios/returns) along with cheap leverage (1.06 – 1 ratio). He not only discovered that insurance floats are almost half the cost of T-bills (generally the risk-free rate) but also made use of his managerial acumen to boost portfolio performance (using accelerated depreciation as it acts like an interest free loan). 
+
+**He simply had a prudent stock and leverage choosing criteria (definitely a skill) – along with consistency that let him stick to his laws while others maybe due to lack of capital were forced to leave in different crisis (especially when the internet bubble burst). In other words, he was ahead of his time to recognize good investment opportunities**.
+
+## Sub-part 5
+According to a reader, what we can see the **author do is conduct an in-depth (long-term) analysis on Buffet and Berkshire Hathaway’s portfolio to understand their investment ideologies and compare them to other stocks as well as market indexes**. 
+
+With an aim of informing the readers not just that most of their superlative performance (denoted by high Sharpe ratio, high CAPM alpha, and other factors) is due to buffet’s stock and leverage picking as well as ability to find a balance between the two. The author without diminishing Buffet’s achievements tries to state that buffet used these strategies over 50 years ago and we recently got to know about them (making him much ahead of his time).  
+
+## Sub-part 6 
+While an investment’s performance is impacted by a multitude of micro and macroeconomic factors, the one’s mentioned by the author to gauge Buffet’s performance are:
+- Value vs growth stocks (he is said to be the ultimate value investor – low beta and high-quality stocks)
+- Low price to book ratios (to get quality investments).
+- High Sharpe and information ratio (excess return relative to risk).
+- Stocks that are profitable, stable, and have high payout ratios.
+- Betting against beta factor (finding assets with high beta and selling them i.e. taking a short position).
+- Quality minus junk factor (taking long position on high quality stocks and shorting the weak stocks).
+- Using cheap leverage in the right magnitude consistently (insurance floats, accelerated depreciation, and sale of derivatives).
+- Benefits of diversification (as he had returns higher than market).
+
+In other words, **he used his strategy to find cheap, safe, and high-quality stable returns. Further, it is also noteworthy to mention buffet’s tax management ability (as seen in the end of the case)**. 
+
+## Sub-part 7
+Owing to buffet’s hindsight he definitely deserves credit for his past investing strategies. Nonetheless, if he manages to replicate the same ones to thrive in today’s dynamic and volatile market **he will be classified as the most prudent investor of all time**. 
+
+The market now - tends towards and efficient one (all the public information is instantly reflected in the prices), has a lot more companies and investors, has many more regulatory bodies and rules, and incorporates a lot more information. Further, everyone now knows that finding safe, cheap, and quality stocks and amplifying returns with leverage (cheap and stable) is the winning strategy. So, finding the stocks falling in the above-mentioned criteria is a lot harder than in earlier was (demanding new strategies). **But, if Buffet manages to find the right stocks, leverage, and consistently hold his positions in this volatile market it will undeniably be worth more praise than for his past actions**. 
+
+
