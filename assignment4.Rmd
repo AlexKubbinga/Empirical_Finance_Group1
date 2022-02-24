@@ -32,27 +32,71 @@ library(fGarch)
 library(qcc)
 library(MTS)
 library(caret)
+library(TTR)
 ```
 
+# Question 1
 ```{r}
 #Sheet 1
 hpr_daily <- read_excel("PS1_Daily.xlsx", sheet=1, skip = 1) %>% 
   mutate(DATE = as.Date(DATE))
-
-#Sheet 2
-prices_daily <- read_excel("PS1_Daily.xlsx", sheet=2, skip = 1) %>% 
-  mutate(DATE = as.Date(DATE))
 ```
 
-## Log or returns
-```{r, log of returns}
-# calculating log returns
-hpr_daily<-hpr_daily %>% 
-  mutate(Ret_msft=log(1+MSFT),
-         Ret_ge=log(1+GE),Ret_jpm=log(1+JPM),Ret_sprtrn=log(1+SPRTRN))
+```{r, log returns}
+# pick msft, ge and jpm and calculating log returns 
+hpr_daily <- hpr_daily %>%
+  mutate(
+    Ret_msft = log(1 + MSFT),
+    Ret_ge = log(1 + GE),
+    Ret_jpm = log(1 + JPM),
+    Ret_sprtrn = log(1 + SPRTRN)
+  )
+
 ```
 
-## Question 2
+```{r}
+# calculate 10-week MA for each stock
+msft_vol10w <- sqrt(runMean((hpr_daily$Ret_msft) ^ 2, 50))
+ge_vol10w <- sqrt(runMean((hpr_daily$Ret_ge) ^ 2, 50))
+jpm_vol10w <- sqrt(runMean((hpr_daily$Ret_jpm) ^ 2, 50))
+
+# define EWMA model function
+ewma.func <- function(rets, lambda, sig0) {
+	sig.p <- sig0
+	sig.s <-
+	  vapply(rets, function(r)
+	    sig.p <<- sig.p * lambda + (r ^ 2) * (1 - lambda), 0)
+	return(sqrt(sig.s))
+}
+
+# obtain sigma0 for each stock
+msft.s0 <- mean((hpr_daily$Ret_msft) ^ 2)
+ge.s0 <- mean((hpr_daily$Ret_ge) ^ 2)
+jpm.s0 <- mean((hpr_daily$Ret_jpm) ^ 2)
+
+# calculate EWMA for each stock
+msft_ewma <- ewma.func(hpr_daily$Ret_msft, 0.94, msft.s0)
+ge_ewma <- ewma.func(hpr_daily$Ret_ge, 0.94, ge.s0)
+jpm_ewma <- ewma.func(hpr_daily$Ret_jpm, 0.94, jpm.s0)
+
+```
+
+```{r}
+# cumulative mean return time series
+msft.mu <- cummean(hpr_daily$Ret_msft)
+ge.mu <- cummean(hpr_daily$Ret_ge)
+jpm.mu <- cummean(hpr_daily$Ret_jpm)
+
+# calculate VaR for each stock using EWMA volatility
+df <- cbind(hpr_daily, msft.mu, msft_ewma, ge.mu, ge_ewma, jpm.mu, jpm_ewma)
+df <- df %>% 
+  mutate(msft.VaR = msft.mu - 1.65 * msft_ewma,
+         ge.VaR = ge.mu - 1.65 * ge_ewma,
+         jpm.VaR = jpm.mu - 1.65 * jpm_ewma)
+
+```
+
+# Question 2
 ```{r}
 #Data  for portfolios on operating profit 
 op<- read.csv("Portfolios_Formed_on_OP.CSV", skip = 24, stringsAsFactors = FALSE, strip.white=TRUE, nrow=702) %>%
