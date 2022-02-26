@@ -60,6 +60,10 @@ msft_vol10w <- sqrt(runMean((hpr_daily$Ret_msft) ^ 2, 50))
 ge_vol10w <- sqrt(runMean((hpr_daily$Ret_ge) ^ 2, 50))
 jpm_vol10w <- sqrt(runMean((hpr_daily$Ret_jpm) ^ 2, 50))
 
+
+# we can also use another method 
+# vol<-TTR::SMA((hpr_daily$Ret_msft)^2, n = 50, fill = NA)
+
 # define EWMA model function
 ewma.func <- function(rets, lambda, sig0) {
 	sig.p <- sig0
@@ -95,6 +99,22 @@ df <- df %>%
          jpm.VaR = jpm.mu - 1.65 * jpm_ewma)
 
 ```
+
+```{r}
+# count times of violation
+# count the negative realized market returns that are more extreme than the VaR on this given day.
+df<- df %>% 
+  mutate(jpm.violation = case_when( Ret_jpm<0 & Ret_jpm < jpm.VaR ~ TRUE ,TRUE ~ FALSE),
+         msft.violation = case_when(Ret_msft<0& Ret_msft< msft.VaR ~ TRUE ,TRUE ~ FALSE),
+         ge.violation = case_when( Ret_ge<0 & Ret_ge< ge.VaR ~ TRUE,TRUE ~ FALSE)) 
+
+cat("Violations of JPM: ", sum(df$jpm.violation), 
+    "\nViolations of Microsoft: ", sum(df$msft.violation),
+    "\nViolations of GE: ", sum(df$ge.violation))
+
+
+```
+Backtesting measures the accuracy of the value at risk calculations. The less violations there are, they better our VaR estimates. Over the period  of 6301 days, there are violations around 4% of these days which suggests that our VaR model didn't capture the 4% extreme loss.
 
 # Question 2
 ```{r}
