@@ -193,7 +193,7 @@ head(port49_clean)
 ```{r}
 ff <- read_csv("F-F_Research_Data_Factors.CSV", skip = 3, n_max = 1146, col_names = TRUE)
 ff_clean <- ff %>%
-  rename(date=X1)%>%
+  rename(date=...1)%>%
   clean_names()
 
 ff_clean$date <- parse_date(as.character(ff_clean$date), format = "%Y%m")
