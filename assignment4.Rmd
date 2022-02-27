@@ -396,3 +396,9 @@ The correlation between the second principal component and the difference betwee
 
 
 *Answer 10:*
+For this part of the question, the necessary files were downloaded and the R code `Code Lecture5 plus.R` was run to gauge why equal weight portfolios were over performing as opposed to the portfolio's whose weights were found using historical data and maximum Sharpe ratios. 
+
+We realized this is due to over fitting as the model doesn't perform well on the out of sample data. Therefore, to assuage this we changed the shrinkage parameters (reduces the effect of sampling variation) on LASSO and ridge so the model based on weights derived from Sharpe ratio's performs well. 
+
+
+
