@@ -4,7 +4,13 @@ author: "Group1"
 date: "24/02/2022"
 output: html_document
 ---
-
+Group 1 ：
+Alex Kubbinga	3752590
+Jose Laffitte	3607979
+Lauren Wade	3730969
+Purva Sikri 	3493543
+Shengcheng Liu 	3760318
+Xinyue Zhang	3761621
 
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = TRUE)
@@ -319,11 +325,11 @@ When compared with the previous regression, we can say that the regression using
 NOTE: This improvement in R-squared is specially a lot more for the portfolios formed on dividend yield and momentum.
 
 *Answer 6:*
-Although PCA is an efficient way of reducing the dimensionality of big data, it has some limitations (due to it's complexity in understanding) as well as ways to ovecome those limitations which are explained below: 
+Although PCA is an efficient way of reducing the dimensionality of big data, it has some limitations (due to it's complexity in understanding) as well as ways to overcome those limitations which are explained below: 
  - It doesn't tell us exactly which factors have how much impact as it tends to club features in order to reduce the dimensionality of the data. Therefore, as we can see in our case also, we know that the 3 PC's explain 95.4% of the variation in excess portfolio returns for portfolios formed on operating profit. But we don't know which variables impact this excess return in specific? how much is the impact of these variables? which variables are redundant?
- - In case of financial models, the prices/reeturns may be skewed or have non-linear relationships and PCA is not very good at capturing these relations. Thefore, we need to transform them into linear variables and reelationships before running a PCA.
- - PCA is very senitive to the scale of the inputs/features i.e. the higher the range of a variable, the more likely it is to be one of the earlier PC's irrespective of how much variability it actually explaind. Thefore, to assauge this problem we stnadrdise the data vefore running a PCA.
- - Lastly, there tends to be a presence of missing vales (data not available for a day) and outliers (as the data is skewewd, prices are volatile, hugely governed by public sentiment, and could be affected by extrenal happenings or black swan events) in economic and finnacial datasets.  PCA doesnt handle missing values or outliers well, so we need to remove outliers as well as missing values before doing a PCA.  
+ - In case of financial models, the prices/returns may be skewed or have non-linear relationships and PCA is not very good at capturing these relations. Therefore, we need to transform them into linear variables and relationships before running a PCA.
+ - PCA is very sensitive to the scale of the inputs/features i.e. the higher the range of a variable, the more likely it is to be one of the earlier PC's irrespective of how much variability it actually explained. Therefore, to assauge this problem we standardize the data before running a PCA.
+ - Lastly, there tends to be a presence of missing vales (data not available for a day) and outliers (as the data is skewed, prices are volatile, hugely governed by public sentiment, and could be affected by extrenal happenings or black swan events) in economic and financial datasets.  PCA doesn't handle missing values or outliers well, so we need to remove outliers as well as missing values before doing a PCA.  
 
 
 #Question 7 - Loading the dataframe
