@@ -180,7 +180,7 @@ head(port49_clean)
 ```{r}
 ff <- read_csv("F-F_Research_Data_Factors.CSV", skip = 3, n_max = 1146, col_names = TRUE)
 ff_clean <- ff %>%
-  rename(date=...1)%>%
+  rename(date=X1)%>%
   clean_names()
 
 ff_clean$date <- parse_date(as.character(ff_clean$date), format = "%Y%m")
@@ -331,22 +331,58 @@ PS4_Daily<- read_excel("PS4_Daily.xlsx", sheet=1, col_names = TRUE) %>%
 ```
 
 # Question 8
-```{r}
-pca<- function(x){
-  ncol<- ncol(x)
-  diffOmit <- diff(as.matrix(x[,2:ncol]))
-  da <- na.omit(x)
-  ddat <- na.omit(diffOmit)
-  n <- dim(ddat)[1]
-  options(digits = 4)
-  pca<- prcomp(ddat,5)
-  summary(pca)
-}
 
-pca(PS4_Daily)
+The first PC explains 98% of the variation in the data and the first 3 PCs explain 99% of the variation in the data. 
+
+We also plotted a time series of the first 3 PCs. As we can see PC2 and PC3 are relatively similar with PC2 having slightly more variation. PC1 clearly has the most variation. PC1 is green, PC2 is blue and PC3 is red.
+```{r}
+
+#remove NAs
+PS4_Daily <- subset(PS4_Daily, PS4_Daily$sveny01 !="NA") 
+
+PS4_Daily_numeric <- PS4_Daily %>% select(-date)
+
+#convert to numeric for PCA
+PS4_Daily_numeric <- as.data.frame(sapply(PS4_Daily_numeric, as.numeric))
+
+# str(PS4_Daily_numeric) as we can see the data becomes numeric
+
+PCA_yields<-prcomp(PS4_Daily_numeric, center = TRUE, scale. = TRUE)
+# pca(PS4_Daily_numeric)
+summary(PCA_yields)
+
+PC1<-PCA_yields$x[,1]
+PC2<-PCA_yields$x[,2]
+PC3<-PCA_yields$x[,3]
+
+
+final <- data.frame(PS4_Daily$date,PC1,PC2,PC3)
+
+autoplot(PCA_yields)
+
+
+final %>% ggplot() + geom_point(aes(x=PS4_Daily.date,y=PC1), color="green") + geom_point(aes(x=PS4_Daily.date,y=PC2), color="blue") +
+  geom_point(aes(x=PS4_Daily.date,y=PC3), color="red") + labs(
+    x="Date",
+    y="PCs",
+    title = "Time series plot of PCs (G=1,B=2,R=3)"
+  )
+
 ```
 
+
+# Question 9
+
+The correlation between the first principal component and the 3-year yield is -0.9846. PC1 and the three year yield are almost perfectly negatively correlated meaning that as the 3 year yield falls from 1980 to 2020, PC1 rises. Yields since 1980 to 2020 dropped significantly from around 10%+ (for all maturities) to around 1-2%. PC1 is capturing this variation/change in yields over time. It is also highly correlated to the other maturity yields.
+
+The correlation between the second principal component and the difference between the 10-year and 1-year yield is -0.9447. The 2nd principal component has a very high correlation with the difference between the 10th and 1st year yields. The economic intuition for PC2 is that it is capturing the yield spread between the different maturities. Longer maturity bonds tend to have higher yields than shorter due to the duration risk. PC2 is capturing this difference in maturity yield spread between 10 and 1 year yields.
 ```{r}
-pca(dy_clean, ncp=3, )
+diff_10_1 <- PS4_Daily_numeric$sveny10 - PS4_Daily_numeric$sveny01
+
+cor(PC1,PS4_Daily_numeric$sveny03) #-0.9846
+# cor(PC1,PS4_Daily_numeric$sven20) # also very highly correlated
+
+cor(PC2,diff_10_1) #-0.9447
+
 ```
 

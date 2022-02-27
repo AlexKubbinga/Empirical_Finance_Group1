@@ -1,0 +1,258 @@
+---
+title: "Group Finance"
+author: "Purva Sikri"
+date: "09/02/2022"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## R Markdown
+
+```{r}
+library(tidyverse)
+library(ggplot2)  
+library(here)
+library(janitor) # clean_names()
+library(skimr)
+library(vroom)
+library(mosaic)
+library(lubridate)
+library(readxl)
+library(quantmod)
+library(xts)
+library(moments)
+library(readxl)
+library(forecast)
+library(roll)
+library(fGarch)
+library(qcc)
+library(MTS)
+```
+
+```{r}
+#Sheet 1
+hpr_daily <- read_excel("PS1_Daily.xlsx", sheet=1, skip = 1) %>% 
+  mutate(DATE = as.Date(DATE))
+
+#Sheet 2
+prices_daily <- read_excel("PS1_Daily.xlsx", sheet=2, skip = 1) %>% 
+  mutate(DATE = as.Date(DATE))
+```
+
+## Log or returns
+```{r, log of returns}
+# calculating log returns
+hpr_daily<-hpr_daily %>% 
+  mutate(Ret_msft=log(1+MSFT),
+         Ret_ge=log(1+GE),Ret_jpm=log(1+JPM),Ret_sprtrn=log(1+SPRTRN))
+```
+
+## Question 2
+```{r}
+#Data  for portfolios on operating profit 
+op<- read.csv("Portfolios_Formed_on_OP.CSV", skip = 24, stringsAsFactors = FALSE, strip.white=TRUE, nrow=702) %>%
+  clean_names()
+
+op_clean <- op %>%
+  rename(date=x)
+
+op_clean$date <- parse_date(as.character(op_clean$date), format = "%Y%m")
+
+head(op_clean)
+
+#Data on portfoios formed on investmnet 
+inv <- read.csv("Portfolios_Formed_on_INV.CSV", skip = 17, stringsAsFactors = FALSE, strip.white=TRUE,  nrow=702) %>%
+  clean_names()
+
+inv_clean <- inv %>%
+  rename(date=x)
+
+inv_clean$date <- parse_date(as.character(inv_clean$date), format = "%Y%m")
+
+head(inv_clean)
+
+#Data on portfolios formed on portfolios by dividend yeild 
+dy <- read.csv("Portfolios_Formed_on_D-P.CSV", skip = 19, stringsAsFactors = FALSE, strip.white=TRUE, nrow=1134) %>%
+  clean_names()
+
+dy_clean <- dy %>%
+  rename(date=x)
+
+dy_clean$date <- parse_date(as.character(dy_clean$date), format = "%Y%m")
+
+head(dy_clean)
+
+#Data on momentum 
+mom <- read.csv("10_Portfolios_Prior_12_2.CSV", skip = 10, stringsAsFactors = FALSE, strip.white=TRUE, nrows = 1140) %>% 
+  clean_names()
+
+mom_clean <- mom %>%
+  rename(date=x)
+
+mom_clean$date <- parse_date(as.character(mom_clean$date), format = "%Y%m")
+
+head(mom_clean)
+
+#49 portfolios data 
+port49 <- read.csv("49_Industry_Portfolios.CSV",skip = 11, stringsAsFactors = FALSE, strip.white=TRUE, nrows =1146) %>% 
+  clean_names()
+
+port49_clean <- port49 %>%
+  rename(date=x)
+
+port49_clean$date <- parse_date(as.character(port49_clean$date), format = "%Y%m")
+
+head(port49_clean) 
+
+  
+```
+
+
+```{r}
+ff <- read_csv("F-F_Research_Data_Factors.CSV", skip = 3, n_max = 1146, col_names = TRUE)
+ff_clean <- ff %>%
+  rename(date=...1)%>%
+  clean_names()
+
+ff_clean$date <- parse_date(as.character(ff_clean$date), format = "%Y%m")
+
+head(ff_clean) 
+
+```
+
+#PCA for all - Question 3 
+```{r}
+pca<- function(x){
+  ncol<- ncol(x)
+  diffOmit <- diff(as.matrix(x[,2:ncol]))
+  da <- na.omit(x)
+  ddat <- na.omit(diffOmit)
+  n <- dim(ddat)[1]
+  options(digits = 4)
+  pca<- prcomp(ddat,5)
+  summary(pca)
+}
+
+pca(op_clean)
+
+
+pca(inv_clean)
+
+
+pca(dy_clean)
+
+
+pca(mom_clean)
+
+
+pca(port49_clean)
+
+```
+
+
+
+# Question 4
+```{r}
+reg<- function(df){
+  total <- inner_join(df,ff_clean, by="date")
+  total$ex_ret1<- 0
+  ncol<- ncol(total)
+  adj_rsq <- {}
+  for (i in 2:(ncol-5)){
+    total[ncol]<- total[i] - total$rf #formula for excess returns
+    linear<- lm(ex_ret1 ~ mkt_rf + smb+ hml, data=total)
+    adj_rsq[i-1] <- summary(linear)$adj.r.squared
+  }
+  paste0(" Found Adjusted R-squared for ", deparse(substitute(df)), " is ", mean(adj_rsq), " median is ", median(adj_rsq), "S.D. is ", sd(adj_rsq))
+}
+
+operating_profit2 <- reg(op_clean)
+print(operating_profit2)
+
+investment2<- reg(inv_clean)
+print(investment2)
+
+dividend_yeild2 <- reg(dy_clean)
+print(dividend_yeild2)
+
+momentum2 <- reg(mom_clean)
+print(momentum2)
+
+portfolio49_2<- reg(port49_clean)
+print(portfolio49_2)
+
+# ff1 <- reg(ff_clean)
+# print(ff1)
+
+```
+
+# Question 5 
+```{r}
+reg2<- function(df){
+  total <- inner_join(df,ff_clean, by="date")
+  total$ex_ret1<- 0
+  ncol<- ncol(total)
+  adj_rsq <- {}
+  for (i in 2:(ncol-5)){
+    total[ncol]<- total[i] - total$rf #formula for excess returns
+    linear2<- lm(ex_ret1 ~ pca(df)$x[,1] + pca(df)$x[,2]+ pca(df)$x[,3], data=total)
+    adj_rsq[i-1] <- summary(linear2)$adj.r.squared
+  }
+  paste0(" Found Adjusted R-squared for ", deparse(substitute(df)), " is ", mean(adj_rsq), " median is ", median(adj_rsq), "S.D. is ", sd(adj_rsq))
+}
+
+
+
+investment2<- reg(inv_clean)
+print(investment2)
+
+dividend_yeild2 <- reg(dy_clean)
+print(dividend_yeild2)
+
+momentum2 <- reg(mom_clean)
+print(momentum2)
+
+portfolio49_2<- reg(port49_clean)
+print(portfolio49_2)
+
+# operating_profit3 <- reg2(op_clean)
+# print(operating_profit3)
+```
+
+#Question 7
+```{r}
+PS4_Daily<- read_excel("PS4_Daily.xlsx", sheet=1, col_names = TRUE) %>%
+  clean_names() 
+
+
+PS4_Daily2<-mutate_all(PS4_Daily, function(x) as.numeric(as.character(x))) 
+
+
+
+
+
+```
+
+# Question 8
+```{r}
+pca<- function(x){
+  ncol<- ncol(x)
+  diffOmit <- diff(as.matrix(x[,2:ncol]))
+  da <- na.omit(x)
+  ddat <- na.omit(diffOmit)
+  n <- dim(ddat)[1]
+  options(digits = 4)
+  pca<- prcomp(ddat,5)
+  summary(pca)
+}
+
+pca(PS4_Daily)
+```
+
+```{r}
+pca(dy_clean, ncp=3, )
+```
+
