@@ -393,6 +393,7 @@ cor(PC2,diff_10_1) #-0.9447
 The correlation between the first principal component and the 3-year yield is -0.9846. PC1 and the three year yield are almost perfectly negatively correlated meaning that as the 3 year yield falls from 1980 to 2020, PC1 rises. Yields since 1980 to 2020 dropped significantly from around 10%+ (for all maturities) to around 1-2%. PC1 is capturing this variation/change in yields over time. It is also highly correlated to the other maturity yields.
 
 The correlation between the second principal component and the difference between the 10-year and 1-year yield is -0.9447. The 2nd principal component has a very high correlation with the difference between the 10th and 1st year yields. The economic intuition for PC2 is that it is capturing the yield spread between the different maturities. Longer maturity bonds tend to have higher yields than shorter due to the duration risk. PC2 is capturing this difference in maturity yield spread between 10 and 1 year yields.
+<<<<<<< HEAD
 
 
 *Answer 10:*
@@ -402,3 +403,5 @@ We realized this is due to over fitting as the model doesn't perform well on the
 
 
 
+=======
+>>>>>>> 22bd642cab8c45849b6fd5b0766488fe1623f673
