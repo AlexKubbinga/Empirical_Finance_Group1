@@ -2,15 +2,24 @@
 title: "Assignment 4"
 author: "Group1"
 date: "24/02/2022"
-output: html_document
+output: 
+    html_document:
+      number_sections: true
+      highlight: haddock
+      theme: spacelab
+      toc: yes
+      toc_depth: 2
+      toc_float:
+        collapsed: false
 ---
-Group 1 ：
-Alex Kubbinga	3752590
-Jose Laffitte	3607979
-Lauren Wade	3730969
-Purva Sikri 	3493543
-Shengcheng Liu 	3760318
-Xinyue Zhang	3761621
+
+*Group 1* ：
+**- Alex Kubbinga	3752590 **
+**- Jose Laffitte	3607979**
+**- Lauren Wade	3730969**
+**- Purva Sikri 	3493543**
+**- Shengcheng Liu 	3760318**
+**- Xinyue Zhang	3761621**
 
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = TRUE)
